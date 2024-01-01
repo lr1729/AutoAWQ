@@ -1,4 +1,5 @@
 import torch
+import os
 import inspect
 import logging
 import functools
@@ -77,6 +78,10 @@ class AwqQuantizer:
         return w
     
     def quantize(self):
+        awq_results = {
+            "scale": [],
+            "clip": [],
+        }
         for i in tqdm(range(len(self.modules)), desc="AWQ"):
             # Move module and inputs to correct device
             common_device = next(self.modules[i].parameters()).device
@@ -102,15 +107,23 @@ class AwqQuantizer:
             scales_list = [self._search_best_scale(self.modules[i], **layer) for layer in module_config]
             apply_scale(self.modules[i], scales_list, input_feat_dict=input_feat)
             scales_list = append_str_prefix(scales_list, get_op_name(self.model, self.modules[i]) + ".")
+            awq_results["scale"].extend(scales_list)  # Save the scale list to the results
+
 
             # [STEP 3]: Compute and apply clipping list
             clip_list = self._search_best_clip(self.modules[i], named_linears, input_feat)
             apply_clip(self.modules[i], clip_list)
             clip_list = append_str_prefix(clip_list, get_op_name(self.model, self.modules[i]) + ".")
+            awq_results["clip"].extend(clip_list)  # Save the clip list to the results
 
             # [STEP 4]: Quantize weights
             self._apply_quant(self.modules[i], named_linears)
             clear_memory()
+
+        awq_results_path = '/root/dolphin-2.6-mistral-7b-w4-g128.pt'
+        dirpath = os.path.dirname(awq_results_path)
+        torch.save(awq_results, awq_results_path)
+        print(f'AWQ search results saved at "{awq_results_path}"')
     
     def _apply_quant(self, module, named_linears: Dict[str, nn.Linear]):
         for name, linear_layer in named_linears.items():

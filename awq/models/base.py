@@ -83,7 +83,7 @@ class BaseAWQForCausalLM(nn.Module):
     @torch.no_grad()
     def quantize(self, tokenizer=None, quant_config={},
                        calib_data: Union[str, List[str]]="pileval", 
-                       split="train", text_column="text", duo_scaling=True, modules_to_not_convert=None):
+                       split="train", text_column="text", duo_scaling=True, modules_to_not_convert=None, awq_results_path=None):
         self.quant_config: AwqConfig = AwqConfig.from_dict(quant_config)
 
         quantizer = AwqQuantizer(
@@ -91,7 +91,7 @@ class BaseAWQForCausalLM(nn.Module):
             self.quant_config.version, calib_data, split, text_column, duo_scaling, modules_to_not_convert=modules_to_not_convert
         )
         quantizer.quantize()
-        
+
         self.is_quantized = True
     
     @staticmethod

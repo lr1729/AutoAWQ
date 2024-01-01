@@ -73,6 +73,18 @@ class MistralAWQForCausalLM(BaseAWQForCausalLM):
 
         return layers
 
+    def save_awq_search_results(self, filename):
+        # Create a dictionary to hold the AWQ search results
+        awq_search_results = {}
+
+        # Iterate over the layers in the model
+        for i, layer in enumerate(self.get_model_layers(self)):
+            # Save the state_dict of each layer to the dictionary
+            awq_search_results[f'layer_{i}'] = layer.state_dict()
+
+        # Save the dictionary to a file
+        torch.save(awq_search_results, filename)
+
 
 class MistralFuser:
     def __init__(self, model: OldMistralForCausalLM):
